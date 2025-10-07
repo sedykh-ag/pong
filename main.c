@@ -1,11 +1,12 @@
 #include <stdio.h>
-#include <termios.h>
-#include <fcntl.h>
 
 #ifdef _WIN32
 #include <windows.h>
+#include <conio.h>
 #else
 #include <unistd.h>
+#include <termios.h>
+#include <fcntl.h>
 #endif
 
 #define FRAME_WIDTH 45
@@ -13,33 +14,49 @@
 #define PADDLE_LENGTH 3
 #define DT 100
 
-void msleep(unsigned int ms)
-{
 #ifdef _WIN32
-  Sleep(ms);
-#else
-  usleep(ms * 1000u);
-#endif
-}
+void msleep(unsigned int ms) { Sleep(ms); }
+
+static DWORD original_console_mode;
 
 void set_canon_terminal_mode() {
-  struct termios terminal;
-  tcgetattr(STDIN_FILENO, &terminal);
-  terminal.c_lflag &= ~(ICANON | ECHO);
-  tcsetattr(STDIN_FILENO, TCSANOW, &terminal);
-
-  int file_status_flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-  fcntl(STDIN_FILENO, F_SETFL, file_status_flags | O_NONBLOCK);
+  HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+  GetConsoleMode(hStdin, &original_console_mode);
+  SetConsoleMode(hStdin,
+    original_console_mode & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT));
 }
 
 void unset_canon_terminal_mode() {
-  struct termios new_termios;
-  tcgetattr(STDIN_FILENO, &new_termios);
-  new_termios.c_lflag |= (ICANON | ECHO);
-  tcsetattr(STDIN_FILENO, TCSANOW, &new_termios);
+  HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+  SetConsoleMode(hStdin, original_console_mode);
+}
+#else
+void msleep(unsigned int ms) { usleep(ms * 1000u); }
 
-  int file_status_flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-  fcntl(STDIN_FILENO, F_SETFL, file_status_flags & (~O_NONBLOCK));
+static struct termios original_terminal_mode;
+static int original_file_flags;
+
+void set_canon_terminal_mode() {
+  tcgetattr(STDIN_FILENO, &original_terminal_mode);
+  struct termios new_terminal_mode = original_terminal_mode;
+  new_terminal_mode.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &new_terminal_mode);
+
+  original_file_flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+  fcntl(STDIN_FILENO, F_SETFL, original_file_flags | O_NONBLOCK);
+}
+
+void unset_canon_terminal_mode() {
+  tcsetattr(STDIN_FILENO, TCSANOW, &original_terminal_mode);
+  fcntl(STDIN_FILENO, F_SETFL, original_file_flags);
+}
+
+int _kbhit() { return 1; }
+#endif
+
+int key_hit()
+{
+  return _kbhit();
 }
 
 struct Ball
@@ -75,9 +92,9 @@ int main()
   while (1)
   {
     // controls
-    int c = getchar();
-    if (c != EOF)
+    if (key_hit())
     {
+      int c = getchar();
       // quit
       if (c == 'q')
         break;
