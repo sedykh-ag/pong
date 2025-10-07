@@ -48,11 +48,14 @@ void set_canon_terminal_mode() {
 
   original_file_flags = fcntl(STDIN_FILENO, F_GETFL, 0);
   fcntl(STDIN_FILENO, F_SETFL, original_file_flags | O_NONBLOCK);
+
+  printf("\x1b[?25l"); // hide cursor
 }
 
 void unset_canon_terminal_mode() {
   tcsetattr(STDIN_FILENO, TCSANOW, &original_terminal_mode);
   fcntl(STDIN_FILENO, F_SETFL, original_file_flags);
+  printf("\x1b[?25h"); // show cursor
 }
 
 int _kbhit() { return 1; }
