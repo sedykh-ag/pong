@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -9,10 +11,10 @@
 #include <fcntl.h>
 #endif
 
-#define FRAME_WIDTH 45
-#define FRAME_HEIGHT 10
+#define FRAME_WIDTH 47
+#define FRAME_HEIGHT 11
 #define PADDLE_LENGTH 3
-#define DT 100
+#define DT 80
 
 #ifdef _WIN32
 void msleep(unsigned int ms) { Sleep(ms); }
@@ -73,11 +75,19 @@ struct Paddle
   unsigned y_top, y_bot;
 };
 
+void reset_ball(struct Ball *ball)
+{
+  ball->x = FRAME_WIDTH / 2; ball->y = FRAME_HEIGHT / 2;
+  ball->v_x = (rand() % 2) == 0 ? -1 : 1;
+  ball->v_y = (rand() % 2) == 0 ? -1 : 1;
+}
+
 int main()
 {
+  srand(time(NULL));
+
   struct Ball ball;
-  ball.x = FRAME_WIDTH / 2; ball.y = FRAME_HEIGHT / 2;
-  ball.v_x = 1; ball.v_y = 1;
+  reset_ball(&ball);
 
   struct Paddle rPaddle;
   rPaddle.x = FRAME_WIDTH - 4;
@@ -88,6 +98,8 @@ int main()
   lPaddle.x = 3;
   lPaddle.y_top = (FRAME_HEIGHT - 1) / 2;
   lPaddle.y_bot = rPaddle.y_top + (PADDLE_LENGTH - 1);
+
+  unsigned lScore = 0, rScore = 0;
 
   set_canon_terminal_mode();
 
@@ -125,10 +137,18 @@ int main()
     }
 
     // kinematics
-    if (ball.x <= 1 || ball.x >= (FRAME_WIDTH - 2))
-      ball.v_x = -ball.v_x;
     if (ball.y <= 1 || ball.y >= (FRAME_HEIGHT - 2))
       ball.v_y = -ball.v_y;
+    if (ball.x <= 0)
+    {
+      rScore++;
+      reset_ball(&ball);
+    }
+    else if (ball.x >= (FRAME_WIDTH - 1))
+    {
+      lScore++;
+      reset_ball(&ball);
+    }
 
     if (ball.x == (rPaddle.x - 1) && ball.y >= rPaddle.y_top && ball.y <= rPaddle.y_bot)
       ball.v_x = -ball.v_x;
@@ -141,6 +161,12 @@ int main()
 
     // rendering
     printf("\033[H\033[J"); // move cursor to top-left position
+
+    printf("q to quit\n"
+           "w/d to move left paddle\n"
+           "o/l to move right paddle\n\n");
+
+    printf("SCORE %u %u\n", lScore, rScore);
     for (unsigned y = 0; y < FRAME_HEIGHT; y++)
     {
       for (unsigned x = 0; x < FRAME_WIDTH; x++)
