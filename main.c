@@ -24,11 +24,13 @@ void set_canon_terminal_mode() {
   GetConsoleMode(hStdin, &original_console_mode);
   SetConsoleMode(hStdin,
     original_console_mode & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT));
+  printf("\x1b[?25l"); // hide cursor
 }
 
 void unset_canon_terminal_mode() {
   HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
   SetConsoleMode(hStdin, original_console_mode);
+  printf("\x1b[?25h"); // show cursor
 }
 #else
 void msleep(unsigned int ms) { usleep(ms * 1000u); }
@@ -138,7 +140,7 @@ int main()
     ball.y += ball.v_y;
 
     // rendering
-    printf("\033[H\033[J");
+    printf("\033[H\033[J"); // move cursor to top-left position
     for (unsigned y = 0; y < FRAME_HEIGHT; y++)
     {
       for (unsigned x = 0; x < FRAME_WIDTH; x++)
