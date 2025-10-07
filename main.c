@@ -137,8 +137,10 @@ int main()
     }
 
     // kinematics
+    // top wall collision
     if (ball.y <= 1 || ball.y >= (FRAME_HEIGHT - 2))
       ball.v_y = -ball.v_y;
+    // goal posts collision
     if (ball.x <= 0)
     {
       rScore++;
@@ -149,13 +151,12 @@ int main()
       lScore++;
       reset_ball(&ball);
     }
-
+    // paddles collision
     if (ball.x == (rPaddle.x - 1) && ball.y >= rPaddle.y_top && ball.y <= rPaddle.y_bot)
       ball.v_x = -ball.v_x;
-
     if (ball.x == (lPaddle.x + 1) && ball.y >= lPaddle.y_top && ball.y <= lPaddle.y_bot)
       ball.v_x = -ball.v_x;
-
+    // move ball
     ball.x += ball.v_x;
     ball.y += ball.v_y;
 
