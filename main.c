@@ -182,7 +182,7 @@ int main()
 
         // ball
         if (x == ball.x && y == ball.y)
-          c = '*';
+          c = 'o';
 
         // right paddle
         if ((x == rPaddle.x) && (y <= rPaddle.y_bot) && (y >= rPaddle.y_top))
